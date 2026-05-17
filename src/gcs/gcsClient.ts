@@ -1,5 +1,18 @@
 import { Storage, File } from "@google-cloud/storage";
 
+// GCS SDK errors are objects whose default toString is "[object Object]".
+// This unwraps the useful fields (message, code, errors[]) so the surfaced
+// error is actionable instead of opaque.
+function formatError(err: unknown): string {
+	if (err instanceof Error) return err.message;
+	if (err && typeof err === "object") {
+		const e = err as { message?: string; code?: string | number; errors?: unknown };
+		if (e.message) return `${e.message}${e.code ? ` (code=${e.code})` : ""}`;
+		try { return JSON.stringify(err); } catch { return String(err); }
+	}
+	return String(err);
+}
+
 // Example .env file:
 // GCS_PROJECT_ID=your-project-id
 // GCS_CLIENT_EMAIL=your-service-account@project.iam.gserviceaccount.com
@@ -53,7 +66,7 @@ export class GcsClient {
 				console.log(`Bucket ${this.bucketName} already exists.`);
 			}
 		} catch (error) {
-			throw new Error(`Failed to initialize bucket: ${error}`);
+			throw new Error(`Failed to initialize bucket: ${formatError(error)}`);
 		}
 	}
 
@@ -62,15 +75,23 @@ export class GcsClient {
 			const bucket = this.storage.bucket(this.bucketName);
 			const destination = options?.destination || filePath.split("/").pop();
 
+			// `public: true` triggers a per-object ACL update via makePublic()
+			// after upload. That call fails on buckets that have Uniform
+			// Bucket-Level Access enabled (GCP's recommended default). Gated
+			// behind GCS_MAKE_PUBLIC so UBLA buckets work out of the box;
+			// users on Fine-grained ACL buckets can opt in. For UBLA buckets
+			// configure public read at the bucket level (allUsers viewer).
+			const makePublic = process.env.GCS_MAKE_PUBLIC === "true";
+
 			const [file] = await bucket.upload(filePath, {
 				destination,
 				contentType: options?.contentType,
-				public: true,
+				public: makePublic,
 			});
 
 			return file;
 		} catch (error) {
-			throw new Error(`Failed to upload file: ${error}`);
+			throw new Error(`Failed to upload file: ${formatError(error)}`);
 		}
 	}
 
@@ -83,7 +104,7 @@ export class GcsClient {
 				destination: destinationPath,
 			});
 		} catch (error) {
-			throw new Error(`Failed to download file: ${error}`);
+			throw new Error(`Failed to download file: ${formatError(error)}`);
 		}
 	}
 
@@ -93,7 +114,7 @@ export class GcsClient {
 			const [files] = await bucket.getFiles({ prefix });
 			return files;
 		} catch (error) {
-			throw new Error(`Failed to list files: ${error}`);
+			throw new Error(`Failed to list files: ${formatError(error)}`);
 		}
 	}
 }
