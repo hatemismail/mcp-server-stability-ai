@@ -17,7 +17,17 @@ export class GcsResourceClient extends ResourceClient {
 	}
 
 	getPrefix(context?: ResourceContext): string {
-		return context?.requestorIpAddress + "/";
+		// SSE mode partitions objects by requestor IP. In stdio mode there
+		// is no incoming HTTP request, so fall back to GCS_PATH_PREFIX (or
+		// empty) instead of the literal string "undefined/".
+		if (context?.requestorIpAddress) {
+			return context.requestorIpAddress + "/";
+		}
+		const envPrefix = process.env.GCS_PATH_PREFIX;
+		if (!envPrefix) {
+			return "";
+		}
+		return envPrefix.endsWith("/") ? envPrefix : envPrefix + "/";
 	}
 
 	filenameToUri(filename: string, context?: ResourceContext): string {

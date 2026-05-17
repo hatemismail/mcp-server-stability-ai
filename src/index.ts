@@ -248,7 +248,17 @@ async function main() {
 
 	const useSSE = args.includes("--sse");
 
-	const resourceClientConfig: ResourceClientConfig = useSSE
+	// Storage backend is selected independently of transport: if the four
+	// GCS env vars are set, use GCS regardless of stdio/sse. Falls back to
+	// the local filesystem otherwise. Upstream gated GCS on `--sse` only.
+	const useGcs = Boolean(
+		process.env.GCS_BUCKET_NAME &&
+			process.env.GCS_PROJECT_ID &&
+			process.env.GCS_CLIENT_EMAIL &&
+			process.env.GCS_PRIVATE_KEY
+	);
+
+	const resourceClientConfig: ResourceClientConfig = useGcs
 		? {
 				type: "gcs",
 				gcsConfig: {
