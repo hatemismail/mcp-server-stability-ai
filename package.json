@@ -5,6 +5,7 @@
   },
   "scripts": {
     "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "prepare": "npm run build",
     "start:test": "npm run build && node build/test.js"
   },
   "files": [
