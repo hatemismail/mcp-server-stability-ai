@@ -17,7 +17,7 @@ export const controlStructureToolDefinition = {
         properties: {
             imageFileUri: {
                 type: "string",
-                description: "The URI to the structure reference image file. It should start with file://",
+                description: "The URI of the structure reference image. Accepts any https:// or http:// URL (presigned bucket URL, CDN URL, public image host — the server downloads bytes), a GCS object URL for this MCP's pre-staged bucket, or a file:// path on the server filesystem.",
             },
             prompt: {
                 type: "string",

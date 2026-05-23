@@ -39,7 +39,7 @@ export const replaceBackgroundAndRelightToolDefinition = {
 			imageFileUri: {
 				type: "string",
 				description:
-					"The URI to the subject image file. It should start with file://",
+					"The URI of the subject image. Accepts any https:// or http:// URL (presigned bucket URL, CDN URL, public image host — the server downloads bytes), a GCS object URL for this MCP's pre-staged bucket, or a file:// path on the server filesystem.",
 			},
 			backgroundPrompt: {
 				type: "string",
@@ -47,7 +47,8 @@ export const replaceBackgroundAndRelightToolDefinition = {
 			},
 			backgroundReferenceUri: {
 				type: "string",
-				description: "Optional URI to a reference image for background style",
+				description:
+					"Optional URI of a background-style reference image. Accepts any https:// or http:// URL (presigned bucket URL, CDN URL, public image host — the server downloads bytes), a GCS object URL for this MCP's pre-staged bucket, or a file:// path on the server filesystem.",
 			},
 			foregroundPrompt: {
 				type: "string",
@@ -77,7 +78,8 @@ export const replaceBackgroundAndRelightToolDefinition = {
 			},
 			lightReferenceUri: {
 				type: "string",
-				description: "Optional URI to a reference image for lighting",
+				description:
+					"Optional URI of a lighting reference image. Accepts any https:// or http:// URL (presigned bucket URL, CDN URL, public image host — the server downloads bytes), a GCS object URL for this MCP's pre-staged bucket, or a file:// path on the server filesystem.",
 			},
 			lightSourceStrength: {
 				type: "number",
