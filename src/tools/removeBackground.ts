@@ -19,7 +19,14 @@ export const removeBackgroundToolDefinition = {
 		properties: {
 			imageFileUri: {
 				type: "string",
-				description: `The URI to the image file. It should start with file://`,
+				description:
+					`The URI of the source image. Accepts: ` +
+					`(1) any https:// or http:// URL — presigned bucket URLs ` +
+					`(e.g. an upstream chat's [Files attached: …, url=…] entry), ` +
+					`CDN URLs, public image hosts. The server downloads the bytes. ` +
+					`(2) a GCS object URL for the pre-staged bucket served by this ` +
+					`MCP (https://storage.googleapis.com/<bucket>/<path>). ` +
+					`(3) a file:// path on the server's filesystem.`,
 			},
 			outputImageFileName: {
 				type: "string",
