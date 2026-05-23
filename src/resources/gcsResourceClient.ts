@@ -4,6 +4,8 @@ import { GcsClient } from "../gcs/gcsClient.js";
 import * as fs from "fs";
 import * as os from "os";
 import * as path from "path";
+import { randomBytes } from "crypto";
+import { URL } from "url";
 
 export class GcsResourceClient extends ResourceClient {
 	private readonly tempDir: string;
@@ -17,7 +19,17 @@ export class GcsResourceClient extends ResourceClient {
 	}
 
 	getPrefix(context?: ResourceContext): string {
-		return context?.requestorIpAddress + "/";
+		// SSE mode partitions objects by requestor IP. In stdio mode there
+		// is no incoming HTTP request, so fall back to GCS_PATH_PREFIX (or
+		// empty) instead of the literal string "undefined/".
+		if (context?.requestorIpAddress) {
+			return context.requestorIpAddress + "/";
+		}
+		const envPrefix = process.env.GCS_PATH_PREFIX;
+		if (!envPrefix) {
+			return "";
+		}
+		return envPrefix.endsWith("/") ? envPrefix : envPrefix + "/";
 	}
 
 	filenameToUri(filename: string, context?: ResourceContext): string {
@@ -117,6 +129,25 @@ export class GcsResourceClient extends ResourceClient {
 		uri: string,
 		context?: ResourceContext
 	): Promise<string> {
+		// INPUT-only path: any HTTP(S) URL that is NOT a GCS object URL for
+		// our own bucket is downloaded directly via fetch. This is the only
+		// way an MCP client can hand the server an externally-hosted image
+		// (a presigned bucket URL from another S3 store, a CDN URL, a
+		// public image host, etc.) without first mirroring it to GCS.
+		//
+		// IMPORTANT: this is INPUT-only. createResource (output) is
+		// untouched and continues to upload processed images back into
+		// GCS, preserving the existing list-resources flow that surfaces
+		// them with `https://storage.googleapis.com/<bucket>/<prefix>/...`
+		// URIs.
+		const ourBucketPrefix = `https://storage.googleapis.com/${this.gcsClient.bucketName}/`;
+		const isOurGcsUrl = uri.startsWith(ourBucketPrefix);
+		if (!isOurGcsUrl && /^https?:\/\//i.test(uri)) {
+			return this.downloadHttpUri(uri);
+		}
+
+		// EXISTING: GCS object lookup for pre-staged bucket resources
+		// (those returned by listResources or created by createResource).
 		const filename = this.uriToFilename(uri, context);
 		if (!filename) {
 			throw new Error("Invalid file path");
@@ -128,6 +159,39 @@ export class GcsResourceClient extends ResourceClient {
 			tempFilePath
 		);
 
+		return tempFilePath;
+	}
+
+	/**
+	 * Download an arbitrary HTTP(S) URL to a temp file and return the
+	 * local path. Used by resourceToFile() when the input URI isn't a
+	 * GCS object URL for this server's bucket — covers presigned URLs
+	 * from any S3-compatible store, CDN URLs, public image hosts, etc.
+	 */
+	private async downloadHttpUri(uri: string): Promise<string> {
+		const res = await fetch(uri);
+		if (!res.ok) {
+			throw new Error(
+				`Failed to download ${uri}: HTTP ${res.status} ${res.statusText}`
+			);
+		}
+		const buf = Buffer.from(await res.arrayBuffer());
+		// Derive a sensible extension from the URL path so stability.ai's
+		// REST layer has a hint; default .bin if the URL has no extension
+		// (e.g. presigned URLs whose path encodes the object key only).
+		let ext = ".bin";
+		try {
+			const p = new URL(uri).pathname;
+			const idx = p.lastIndexOf(".");
+			if (idx >= 0) {
+				ext = p.slice(idx).split(/[?#]/)[0];
+			}
+		} catch {
+			/* fall back to .bin */
+		}
+		const filename = `external-${randomBytes(8).toString("hex")}${ext}`;
+		const tempFilePath = path.join(this.tempDir, filename);
+		fs.writeFileSync(tempFilePath, buf);
 		return tempFilePath;
 	}
 }

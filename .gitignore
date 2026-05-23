@@ -130,7 +130,9 @@ dist
 .pnp.*
 
 # project-specific
-build
+# build/ is tracked on this branch so global `npm install -g
+# github:owner/repo#branch` doesn't need to invoke tsc at install time
+# (which fails inside minimal Docker images that don't ship devDeps).
 src/test.ts
 
 .DS_Store

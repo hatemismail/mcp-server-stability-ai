@@ -1,6 +1,6 @@
 import { controlSketchToolDefinition } from "../tools/controlSketch.js";
 import { controlStyleToolDefinition } from "../tools/controlStyle.js";
-import { generateImageToolDefinition } from "../tools/generateImage.js";
+import { generateImageCoreToolDefinition } from "../tools/generateImageCore.js";
 import { listResourcesToolDefinition } from "../tools/listResources.js";
 import { searchAndReplaceToolDefinition } from "../tools/searchAndReplace.js";
 import { upscaleCreativeToolDefinition } from "../tools/upscaleCreative.js";
@@ -24,7 +24,7 @@ export const prompts = [
 		name: "generate-image-from-text",
 		description:
 			"Generate a new image with configurable description, style, and aspect ratio",
-		template: `Generate an image for the user using ${generateImageToolDefinition.name}. Make sure to ask the user for feedback after the generation.`,
+		template: `Generate an image for the user using ${generateImageCoreToolDefinition.name}. Make sure to ask the user for feedback after the generation.`,
 	},
 	{
 		name: "generate-image-from-sketch",

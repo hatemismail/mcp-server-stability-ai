@@ -12,9 +12,6 @@ import {
 import { z } from "zod";
 import * as dotenv from "dotenv";
 import {
-	generateImage,
-	GenerateImageArgs,
-	generateImageToolDefinition,
 	generateImageCore,
 	generateImageCoreArgs,
 	GenerateImageCoreArgs,
@@ -183,8 +180,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
 	try {
 		switch (name) {
-			case generateImageToolDefinition.name:
-				return generateImage(args as GenerateImageArgs, context);
 			case generateImageCoreToolDefinition.name:
 				return generateImageCore(args as generateImageCoreArgs, context);
 			case generateImageUltraToolDefinition.name:
@@ -235,7 +230,6 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 server.setRequestHandler(ListToolsRequestSchema, async () => {
 	return {
 		tools: [
-			generateImageToolDefinition,
 			generateImageCoreToolDefinition,
 			generateImageUltraToolDefinition,
 			generateImageSD35ToolDefinition,
