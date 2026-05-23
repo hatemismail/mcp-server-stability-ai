@@ -264,7 +264,22 @@ async function main() {
 
 	const useSSE = args.includes("--sse");
 
-	const resourceClientConfig: ResourceClientConfig = useSSE
+	// Decouple storage backend from transport: if all four GCS_* env vars
+	// are set, use GCS regardless of stdio/sse. Lets this server run as a
+	// stdio child (e.g. spawned by Laravel/runtime) while still uploading
+	// generated images to a shared bucket, AND lets the HTTP-input branch
+	// in GcsResourceClient.resourceToFile fire on stdio runs so we can
+	// pass presigned URLs in as input. Restored from commit adb44d8 —
+	// a prior main-merge inadvertently reverted to the SSE-only gate.
+	const hasGcsEnv = Boolean(
+		process.env.GCS_BUCKET_NAME &&
+			process.env.GCS_PROJECT_ID &&
+			process.env.GCS_CLIENT_EMAIL &&
+			process.env.GCS_PRIVATE_KEY,
+	);
+	const useGcs = useSSE || hasGcsEnv;
+
+	const resourceClientConfig: ResourceClientConfig = useGcs
 		? {
 				type: "gcs",
 				gcsConfig: {
